@@ -140,6 +140,7 @@ celerybeat.pid
 
 # Environments
 .env
+!openobserve_python/.env
 .envrc
 .venv
 env/
