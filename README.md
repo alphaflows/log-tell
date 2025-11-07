@@ -45,7 +45,7 @@ docker exec -it fluentbit /bin/bash -lc 'wc -l /var/lib/docker/containers/*/*-js
 If you already run OpenObserve elsewhere, skip the first compose command, set `OO_HTTP_HOST=host.docker.internal` (or your load balancer DNS), and launch Fluent Bit on every server that hosts containers. Each Fluent Bit instance now:
 
 - Persists tail offsets under `fluentbit/state` so restarts never replay old logs.
-- Reads Docker metadata through `/var/run/docker.sock`, adding `container_name`, `image`, and label fields to every event so you can slice dashboards per workload.
+- Reads Docker metadata from the host’s `/var/lib/docker/containers/*/config.v2.json` via `fluentbit/scripts/docker_metadata.lua`, so the stack keeps working even if your Fluent Bit image (e.g., v4.0.x) ships without the legacy `docker` filter plugin.
 - Applies `LOG_CONTAINER_REGEX` before any other filters so only the containers you care about (e.g., `manta-vllm-server*`) consume resources or trigger alerts.
 - Buffers both inputs and outputs onto disk before retrying, which prevents data loss when the central OpenObserve endpoint is busy.
 

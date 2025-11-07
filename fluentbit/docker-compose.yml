@@ -12,6 +12,7 @@ services:
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
       - ./parsers.conf:/fluent-bit/etc/parsers.conf
       - ./state:/fluent-bit/state
+      - ./scripts:/fluent-bit/scripts:ro
     ports:
       - "${FLB_FORWARD_PORT:-24224}:${FLB_FORWARD_PORT:-24224}"
       - "${FLB_FORWARD_PORT:-24224}:${FLB_FORWARD_PORT:-24224}/udp"
