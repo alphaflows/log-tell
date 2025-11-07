@@ -1,8 +1,3 @@
-local cjson_ok, cjson = pcall(require, "cjson")
-if not cjson_ok then
-  error("cjson module is required for docker metadata filter")
-end
-
 local metadata_cache = {}
 
 local function read_file(path)
@@ -26,6 +21,25 @@ local function sanitize_label_key(key)
   return sanitized
 end
 
+local function extract_value(payload, key)
+  local pattern = '"' .. key .. '"%s*:%s*"(.-)"'
+  return payload:match(pattern)
+end
+
+local function extract_labels(payload)
+  local labels = {}
+  local section = payload:match('"Labels"%s*:%s*{(.-)}')
+  if not section then
+    return labels
+  end
+
+  for k, v in section:gmatch('"([^"\\]+)"%s*:%s*"(.-)"') do
+    labels[k] = v
+  end
+
+  return labels
+end
+
 local function load_metadata(container_id)
   if metadata_cache[container_id] then
     return metadata_cache[container_id]
@@ -37,31 +51,19 @@ local function load_metadata(container_id)
     return nil
   end
 
-  local ok, data = pcall(cjson.decode, payload)
-  if not ok or type(data) ~= "table" then
-    return nil
-  end
-
   local meta = {
     name = nil,
     image = nil,
     labels = {},
   }
 
-  if type(data.Name) == "string" then
-    meta.name = data.Name:gsub("^/", "")
+  local name = extract_value(payload, "Name")
+  if name then
+    meta.name = name:gsub("^/", "")
   end
 
-  local config = data.Config or {}
-  if type(config.Image) == "string" then
-    meta.image = config.Image
-  elseif type(data.Image) == "string" then
-    meta.image = data.Image
-  end
-
-  if type(config.Labels) == "table" then
-    meta.labels = config.Labels
-  end
+  meta.image = extract_value(payload, "Image")
+  meta.labels = extract_labels(payload)
 
   metadata_cache[container_id] = meta
   return meta
