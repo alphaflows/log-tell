@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  fluentbit:
+    image: fluent/fluent-bit:3.0.4-debug
+    container_name: fluentbit
+    networks:
+      - log-tell
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./parsers.conf:/fluent-bit/etc/parsers.conf
+    ports:
+      - "${FLB_FORWARD_PORT:-24224}:${FLB_FORWARD_PORT:-24224}"
+      - "${FLB_FORWARD_PORT:-24224}:${FLB_FORWARD_PORT:-24224}/udp"
+    environment:
+      HOSTNAME: ${HOSTNAME:-local-macos}
+      FLB_FORWARD_PORT: ${FLB_FORWARD_PORT:-24224}
+      LOG_INCLUDE_REGEX: ${LOG_INCLUDE_REGEX:-(?i)(info|error|exception)}
+      LOG_ALERT_REGEX: ${LOG_ALERT_REGEX:-(?i)(error|exception)}
+      OO_HTTP_HOST: ${OO_HTTP_HOST:-host.docker.internal}
+      OO_HTTP_PORT: ${OO_HTTP_PORT:-5080}
+      OO_ORG: ${OO_ORG:-default}
+      OO_STREAM_LOGS: ${OO_STREAM_LOGS:-logs}
+      OO_STREAM_ALERTS: ${OO_STREAM_ALERTS:-logs_alerts}
+      OO_AUTH_HEADER: ${OO_AUTH_HEADER:-Basic YWRtaW5AZXhhbXBsZS5jb206U3Ryb25nUGFzc3dvcmRIZXJl}
+    restart: unless-stopped
+
+networks:
+  log-tell:
+    name: log-tell
