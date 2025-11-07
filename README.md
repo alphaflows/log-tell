@@ -14,10 +14,11 @@ cp .env.example .env   # edit if you want different creds/endpoints
 
 Key variables (see `.env.example` for defaults):
 
-- `FLB_IMAGE_TAG`, `OO_IMAGE_TAG` – pin exact container versions so every server runs the same build.
+- `FLB_IMAGE_TAG`, `OO_IMAGE_TAG` – pin exact container versions so every server runs the same build (defaults are Fluent Bit 3.0.4 and OpenObserve 0.9.6).
 - `FLB_STORAGE_TOTAL_LIMIT` / `FLB_TAIL_MEM_BUF_LIMIT` – how much disk/memory each edge collector can spend buffering when OpenObserve is slow.
 - `OO_HTTP_HOST` – hostname Fluent Bit hits (use `openobserve` when running the local stack, or your production load balancer).
 - `OO_AUTH_HEADER` – `Basic <base64(email:password)>` that matches the OpenObserve user/tenant.
+- `LOG_CONTAINER_REGEX` – regex applied to `container_name` so only specific workloads (e.g., `manta-vllm-server` and `manta-vllm-server-2`) are tailed from `/var/lib/docker/containers`.
 - `LOG_INCLUDE_REGEX` – which lines you want to ingest at all. Keep it broad (e.g. `(?i)(info|error|exception)`) during testing, switch to `(?i)(error|exception)` for production.
 - `LOG_ALERT_REGEX` – subset of lines that should be duplicated into the dedicated `logs_alerts` dataset for alert rules.
 
@@ -35,7 +36,7 @@ docker compose --env-file .env -f openobserve/docker-compose.yml up -d
 docker compose --env-file .env -f fluentbit/docker-compose.yml up -d
 ```
 
-Because the Fluent Bit compose file uses the `fluent/fluent-bit:3.0.4-debug` image, you now have a shell for troubleshooting:
+Because the Fluent Bit compose file uses the `fluent/fluent-bit:3.0.4` image, you now have a shell for troubleshooting:
 
 ```bash
 docker exec -it fluentbit /bin/bash -lc 'wc -l /var/lib/docker/containers/*/*-json.log'
@@ -45,6 +46,7 @@ If you already run OpenObserve elsewhere, skip the first compose command, set `O
 
 - Persists tail offsets under `fluentbit/state` so restarts never replay old logs.
 - Reads Docker metadata through `/var/run/docker.sock`, adding `container_name`, `image`, and label fields to every event so you can slice dashboards per workload.
+- Applies `LOG_CONTAINER_REGEX` before any other filters so only the containers you care about (e.g., `manta-vllm-server*`) consume resources or trigger alerts.
 - Buffers both inputs and outputs onto disk before retrying, which prevents data loss when the central OpenObserve endpoint is busy.
 
 On Linux hosts the `/var/lib/docker/containers` bind immediately exposes every container log file; on macOS/Windows that path is empty because Docker Desktop runs inside a VM, so rely on the Fluentd/Forward input described below to stream logs instead of tailing files.

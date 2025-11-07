@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   fluentbit:
-    image: fluent/fluent-bit:${FLB_IMAGE_TAG:-3.0.4-debug}
+    image: fluent/fluent-bit:${FLB_IMAGE_TAG:-3.0.4}
     container_name: fluentbit
     networks:
       - log-tell
@@ -22,6 +22,7 @@ services:
       FLB_TAIL_MEM_BUF_LIMIT: ${FLB_TAIL_MEM_BUF_LIMIT:-32M}
       LOG_INCLUDE_REGEX: ${LOG_INCLUDE_REGEX:-(?i)(info|error|exception)}
       LOG_ALERT_REGEX: ${LOG_ALERT_REGEX:-(?i)(error|exception)}
+      LOG_CONTAINER_REGEX: ${LOG_CONTAINER_REGEX:-(?i)(manta-vllm-server|manta-vllm-server-2)}
       OO_HTTP_HOST: ${OO_HTTP_HOST:-host.docker.internal}
       OO_HTTP_PORT: ${OO_HTTP_PORT:-5080}
       OO_ORG: ${OO_ORG:-default}
