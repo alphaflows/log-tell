@@ -2,6 +2,7 @@ data
 openobserve/data
 fluentbit_monitor/state/*
 !fluentbit_monitor/state/.gitkeep
+py_monitor/.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

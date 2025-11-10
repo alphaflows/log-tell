@@ -11,6 +11,13 @@ services:
       - ZO_QUERY_THREAD_POOL_SIZE=${OO_QUERY_THREAD_POOL_SIZE:-16}
       - ZO_HTTP_PORT=${OO_HTTP_PORT:-5080}
       - ZO_INGESTION_PORT=${OO_INGESTION_PORT:-5081}
+      - ZO_SMTP_ENABLED=${ZO_SMTP_ENABLED:-false}
+      - ZO_SMTP_HOST=${ZO_SMTP_HOST:-smtp.gmail.com}
+      - ZO_SMTP_PORT=${ZO_SMTP_PORT:-587}
+      - ZO_SMTP_USER_NAME=${ZO_SMTP_USER_NAME:-your-gmail-address@gmail.com}
+      - ZO_SMTP_PASSWORD=${ZO_SMTP_PASSWORD:-your-app-password}
+      - ZO_SMTP_FROM_EMAIL=${ZO_SMTP_FROM_EMAIL:-your-gmail-address@gmail.com}
+      - ZO_SMTP_ENCRYPTION=${ZO_SMTP_ENCRYPTION:-starttls}
     volumes:
       - ./data:/data
     ports:

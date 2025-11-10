@@ -17,6 +17,7 @@ docker compose --env-file .env up -d
 ```
 
 By default the UI/API live at `http://192.168.61.50:5080`. Record the username/password because the collectors authenticate with those values.
+If you need OpenObserve to send email alerts, fill in the SMTP variables near the bottom of `openobserve/.env`—the example file shows a working Gmail/StartTLS configuration.
 
 ## 2. Fluent Bit option (Linux hosts)
 Use Fluent Bit when you want a single container that tails every Docker JSON log file on a host and forwards only the important lines.
@@ -85,6 +86,7 @@ Because the container only mounts the Docker socket, you can run it on any host 
 Once Fluent Bit or the Python agent is pushing error lines into OpenObserve, wire up notifications directly in the OpenObserve UI:
 
 1. **Create a notification channel** – Settings → Destinations → New Destination. Pick Email, Slack, or Webhook and provide the recipient/webhook token.
+   Email destinations rely on the SMTP settings you configured in `openobserve/.env`.
 2. **Define an alert** – Alerts → New Alert → SQL. A minimal query that triggers whenever new errors arrive:
    ```sql
    SELECT count(*) AS error_count
@@ -98,3 +100,5 @@ Once Fluent Bit or the Python agent is pushing error lines into OpenObserve, wir
 Create additional alerts for specific services (filter by `container` or `log LIKE '%OutOfMemory%'`) or route different severities to separate channels.
 
 With OpenObserve running once and every monitor pointing to it over HTTP, you can deploy collectors on as many servers as you like while keeping alerting, storage, and dashboards centralized.
+
+[How to Configure Email Alerts in OpenObserve: A Step-by-Step Guide](https://openobserve.ai/blog/how-to-configure-email-alerts-in-openobserve/)
