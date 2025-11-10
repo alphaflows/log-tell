@@ -1,0 +1,17 @@
+version: "3.9"
+
+# Copy .env.example to .env before running to configure credentials and monitor behavior.
+
+services:
+  logagent:
+    build:
+      context: ./monitor
+      dockerfile: Dockerfile
+    container_name: logagent
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # ✅ allow reading docker logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

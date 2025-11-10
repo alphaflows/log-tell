@@ -182,7 +182,8 @@ def sender_worker() -> None:
 def follow_container(container: str) -> None:
     logging.info("Monitoring container %s", container)
     while not STOP_EVENT.is_set():
-        cmd = ["docker", "logs", "-f", container]
+        # --tail 0 ensures we only stream fresh logs instead of replaying backlog.
+        cmd = ["docker", "logs", "-f", "--tail", "0", container]
         try:
             process = subprocess.Popen(
                 cmd,

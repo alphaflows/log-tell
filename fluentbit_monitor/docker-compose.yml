@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  fluentbit:
+    image: fluent/fluent-bit:${FLB_IMAGE_TAG:-latest}
+    container_name: fluentbit
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./parsers.conf:/fluent-bit/etc/parsers.conf
+      - ./state:/fluent-bit/state
+    environment:
+      HOSTNAME: ${HOSTNAME:-linux-docker-host}
+      FLB_STORAGE_TOTAL_LIMIT: ${FLB_STORAGE_TOTAL_LIMIT:-512M}
+      FLB_TAIL_MEM_BUF_LIMIT: ${FLB_TAIL_MEM_BUF_LIMIT:-32M}
+      LOG_ERROR_REGEX: ${LOG_ERROR_REGEX:-(?i)(error|exception|traceback)}
+      OO_HTTP_HOST: ${OO_HTTP_HOST:-192.168.61.50}
+      OO_HTTP_PORT: ${OO_HTTP_PORT:-5080}
+      OO_ORG: ${OO_ORG:-default}
+      OO_STREAM: ${OO_STREAM:-default}
+      OO_HTTP_TLS: ${OO_HTTP_TLS:-Off}
+      OO_HTTP_COMPRESS: ${OO_HTTP_COMPRESS:-gzip}
+      OO_HTTP_USER: ${OO_HTTP_USER:-admin@example.com}
+      OO_HTTP_PASSWORD: ${OO_HTTP_PASSWORD:-xTb6f8vsJJ4ZUjJh}
+    restart: unless-stopped

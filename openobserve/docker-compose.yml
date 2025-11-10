@@ -2,10 +2,8 @@ version: '3.9'
 
 services:
   openobserve:
-    image: public.ecr.aws/zinclabs/openobserve:${OO_IMAGE_TAG:-0.9.6}
+    image: public.ecr.aws/zinclabs/openobserve:${OO_IMAGE_TAG:-latest}
     container_name: openobserve
-    networks:
-      - log-tell
     environment:
       - ZO_ROOT_USER_EMAIL=${OO_ROOT_EMAIL:-admin@example.com}
       - ZO_ROOT_USER_PASSWORD=${OO_ROOT_PASSWORD:-StrongPasswordHere}
@@ -19,7 +17,3 @@ services:
       - "${OO_HTTP_PORT:-5080}:${OO_HTTP_PORT:-5080}"     # Web UI, API
       - "${OO_INGESTION_PORT:-5081}:${OO_INGESTION_PORT:-5081}"   # Ingest API
     restart: unless-stopped
-
-networks:
-  log-tell:
-    name: log-tell

@@ -1,6 +1,7 @@
 data
-fluentbit/state/*
-!fluentbit/state/.gitkeep
+openobserve/data
+fluentbit_monitor/state/*
+!fluentbit_monitor/state/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -140,7 +141,7 @@ celerybeat.pid
 
 # Environments
 .env
-!openobserve_python/.env
+!py_monitor/.env
 .envrc
 .venv
 env/
