@@ -69,7 +69,8 @@ docker compose up -d
 - `OPENOBSERVE_URL` should point at the same ingestion endpoint as Fluent Bit (example: `http://192.168.61.50:5080/api/default/default/_json`).
 - `MONITOR_HOST` (optional) overrides the `host` field sent to OpenObserve if you want the logs labeled with the physical machine instead of the container hostname.
 - `OPENOBSERVE_USER` / `OPENOBSERVE_PASSWORD` reuse your OpenObserve credentials.
-- `ERROR_PATTERN` defaults to `(error|exception|traceback)` (compiled with `re.IGNORECASE`) and matches each `docker logs` line before enqueueing it for delivery.
+- `ERROR_PATTERN` now defaults to `(?<!["'])ERROR(?![A-Za-z])`, so the agent only emits lines with uppercase `ERROR` tokens and skips JSON fragments such as `"error": null`.
+- `TRACEBACK_PATTERN` and `TRACEBACK_MAX_LINES` control multi-line stack capture. Anything matching the traceback regex is buffered until the stack finishes and published once with severity `fatal`, while single-line `ERROR_PATTERN` hits keep severity `error` for separate alert routing.
 
 Because the container only mounts the Docker socket, you can run it on any host that can reach `192.168.61.50:5080` (or whatever hostname/IP you configured) without joining custom Docker networks.
 

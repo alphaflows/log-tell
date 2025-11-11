@@ -35,10 +35,25 @@ def _env_list(key: str, fallback: List[str]) -> List[str]:
 
 CONTAINERS = _env_list("MONITOR_CONTAINERS", DEFAULT_CONTAINERS)
 
-ERROR_REGEX = os.getenv(
-    "ERROR_PATTERN", r"(error|exception|traceback|critical|fail)"
+ERROR_PATTERN = os.getenv("ERROR_PATTERN", r"(?<![\"'])ERROR(?![A-Za-z])")
+TRACEBACK_PATTERN = os.getenv("TRACEBACK_PATTERN", r"Traceback \(most recent call last\):")
+
+ERROR_REGEX = re.compile(
+    ERROR_PATTERN
 )
-ERROR_PATTERNS = re.compile(ERROR_REGEX, re.IGNORECASE)
+
+TRACEBACK_REGEX = re.compile(
+    TRACEBACK_PATTERN
+)
+TRACEBACK_MAX_LINES = int(os.getenv("TRACEBACK_MAX_LINES", "400"))
+NEW_LOG_LINE_PATTERN = re.compile(
+    r"^(\[|\d{4}-\d{2}-\d{2}[ T]|\d{2}:\d{2}:\d{2}|INFO\b|WARN(?:ING)?\b|ERROR\b|DEBUG\b|TRACE\b|FATAL\b|CRITICAL\b)"
+)
+TRACEBACK_BRIDGE_PREFIXES = (
+    "During handling of the above exception",
+    "The above exception was the direct cause",
+    "Caused by",
+)
 
 OPENOBSERVE_URL = os.getenv(
     "OPENOBSERVE_URL", "http://openobserve:5080/api/default/logs/_json"
@@ -69,6 +84,36 @@ logging.basicConfig(
 )
 
 
+def is_error_line(line: str) -> bool:
+    return bool(ERROR_REGEX.search(line))
+
+
+def is_traceback_start(line: str) -> bool:
+    return bool(TRACEBACK_REGEX.search(line))
+
+
+def is_traceback_bridge(line: str) -> bool:
+    normalized = line.strip()
+    return any(normalized.startswith(prefix) for prefix in TRACEBACK_BRIDGE_PREFIXES)
+
+
+def looks_like_new_log_line(line: str) -> bool:
+    candidate = line.lstrip()
+    return bool(NEW_LOG_LINE_PATTERN.match(candidate))
+
+
+def should_extend_traceback(line: str) -> bool:
+    if line == "" or not line.strip():
+        return True
+    if is_traceback_bridge(line):
+        return True
+    if line.startswith(" ") or line.startswith("\t"):
+        return True
+    if TRACEBACK_REGEX.search(line):
+        return True
+    return not looks_like_new_log_line(line)
+
+
 # ----------------------------------------------------
 # UTILITIES
 # ----------------------------------------------------
@@ -96,12 +141,12 @@ def wait_for_openobserve() -> bool:
     return False
 
 
-def enqueue_log(container: str, line: str) -> None:
+def enqueue_log(container: str, line: str, severity: str = "error") -> None:
     payload = {
         "timestamp": datetime.datetime.utcnow().isoformat(),
         "container": container,
         "log": line,
-        "severity": "error",
+        "severity": severity,
         "host": MONITOR_HOST,
     }
 
@@ -204,18 +249,50 @@ def follow_container(container: str) -> None:
             continue
 
         assert process.stdout is not None
+        traceback_buffer: List[str] = []
+
+        def flush_traceback_buffer() -> None:
+            nonlocal traceback_buffer
+            if not traceback_buffer:
+                return
+            message = "\n".join(traceback_buffer)
+            enqueue_log(container, message, severity="fatal")
+            traceback_buffer = []
+
         for raw_line in process.stdout:
             if STOP_EVENT.is_set():
                 break
 
-            line = raw_line.strip()
+            line = raw_line.rstrip("\r\n")
+
+            if traceback_buffer:
+                if should_extend_traceback(line):
+                    traceback_buffer.append(line)
+                    if len(traceback_buffer) >= TRACEBACK_MAX_LINES:
+                        logging.debug(
+                            "Traceback buffer reached %s lines; flushing for %s",
+                            TRACEBACK_MAX_LINES,
+                            container,
+                        )
+                        flush_traceback_buffer()
+                    continue
+                flush_traceback_buffer()
+
             if not line:
                 continue
 
-            if ERROR_PATTERNS.search(line):
-                enqueue_log(container, line)
+            if is_traceback_start(line):
+                traceback_buffer = [line]
+                continue
+
+            if is_error_line(line):
+                enqueue_log(container, line, severity="error")
 
         exit_code = process.wait()
+
+        if traceback_buffer:
+            flush_traceback_buffer()
+
         if STOP_EVENT.is_set():
             break
 
@@ -233,6 +310,8 @@ def follow_container(container: str) -> None:
 # MAIN LOOP
 # ----------------------------------------------------
 def main() -> None:
+    logging.info(f"Starting monitor {MONITOR_HOST}, {ERROR_PATTERN=}, {TRACEBACK_PATTERN=}")
+
     if not CONTAINERS:
         logging.error("No containers configured. Set MONITOR_CONTAINERS env var.")
         return
