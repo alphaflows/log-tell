@@ -18,7 +18,7 @@ services:
       - ZO_SMTP_PASSWORD=${ZO_SMTP_PASSWORD:-your-app-password}
       - ZO_SMTP_FROM_EMAIL=${ZO_SMTP_FROM_EMAIL:-your-gmail-address@gmail.com}
       - ZO_SMTP_ENCRYPTION=${ZO_SMTP_ENCRYPTION:-starttls}
-      - ZO_BASE_URL=${OO_BASE_URL:-http://localhost:5080}
+      - ZO_WEB_URL=${OO_BASE_URL:-http://localhost:5080}
     volumes:
       - ./data:/data
     ports:
